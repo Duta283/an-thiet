@@ -59,6 +59,13 @@ export class SearchService {
    * Gọi sau mỗi đợt seed; khi scale chuyển sang sync incremental.
    */
   async reindex() {
+    // Drop & rebuild: reindex phải phản ánh CHÍNH XÁC Postgres hiện tại,
+    // kể cả những bản ghi đã bị xoá — upsert đơn thuần sẽ để lại document ma.
+    try {
+      await this.client.collections(COLLECTION).delete();
+    } catch {
+      // collection chưa tồn tại — bỏ qua
+    }
     await this.ensureCollection();
     const rows = await this.dataSource.query(
       `SELECT r.id, r.name, r.address, r.area,

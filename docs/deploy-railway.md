@@ -21,8 +21,10 @@ psql "<DATABASE_URL public>" < db/init.sql
 New Service → Docker Image → `typesense/typesense:27.1`. Gắn Volume vào **Mount Path `/data`** — thao tác từ CANVAS (chuột phải vào service → Attach Volume, hoặc Ctrl+K gõ "volume"), KHÔNG nằm trong tab Settings. Thiếu volume là container exit ngay vì data-dir không tồn tại. Custom Start Command (Settings → Deploy):
 
 ```
-/opt/typesense-server --data-dir /data --api-key=<key thật> --enable-cors
+/opt/typesense-server --data-dir /data --api-key=<key thật> --enable-cors --thread-pool-size=8
 ```
+
+(BẪY #6 — gặp thực tế 07/2026: thiếu `--thread-pool-size` là Typesense crash ngay sau khi Online với `what(): Resource temporarily unavailable` + stack trace ThreadPool/std::thread. Nguyên nhân: mặc định nó tạo thread theo số CPU của MÁY CHỦ vật lý (rất lớn) trong khi container plan trial bị giới hạn thread → EAGAIN → abort. 8 thread là đủ cho pilot; tăng khi lên plan cao hơn.)
 
 (BẪY #4 — đã kiểm chứng thực tế trên Railway 07/2026: Start Command THAY THẾ CẢ ENTRYPOINT, từ đầu tiên phải là đường dẫn binary `/opt/typesense-server`. Điền chỉ tham số `--data-dir ...` → lỗi "The executable '--data-dir' could not be found". Điền `sh -c "mkdir ..."` cũng fail — image không dùng được shell kiểu đó, và volume đã lo thư mục nên không cần mkdir. Nhớ bấm nút "Apply N changes"/Deploy ở góc trên trái — Railway xếp hàng thay đổi, chưa bấm là chưa có hiệu lực.)
 
