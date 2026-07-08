@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: anthiet-db
+    environment:
+      POSTGRES_USER: anthiet
+      POSTGRES_PASSWORD: anthiet_dev
+      POSTGRES_DB: anthiet
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - anthiet_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anthiet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: anthiet-typesense
+    command: "--data-dir /data --api-key=anthiet_dev_ts_key --enable-cors"
+    ports:
+      - "8108:8108"
+    volumes:
+      - anthiet_tsdata:/data
+
+volumes:
+  anthiet_pgdata:
+  anthiet_tsdata:

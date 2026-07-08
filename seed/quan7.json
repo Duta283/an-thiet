@@ -1,0 +1,140 @@
+{
+  "users": [
+    {
+      "displayName": "Admin Seed",
+      "isAdmin": true
+    },
+    {
+      "displayName": "Tân Food Test"
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Bún Mắm Cô Ba Phú Mỹ Hưng",
+      "address": "Đường Phạm Thái Bường, P. Tân Phong, Quận 7, TP.HCM",
+      "area": "quan-7",
+      "cuisineTypes": [
+        "bun",
+        "mien-tay"
+      ],
+      "priceMin": 45000,
+      "priceMax": 70000,
+      "lat": 10.7286,
+      "lng": 106.7189,
+      "source": "manual"
+    },
+    {
+      "name": "Cơm Tấm Đêm Huỳnh Tấn Phát",
+      "address": "Huỳnh Tấn Phát, P. Tân Thuận Tây, Quận 7, TP.HCM",
+      "area": "quan-7",
+      "cuisineTypes": [
+        "com-tam"
+      ],
+      "priceMin": 35000,
+      "priceMax": 65000,
+      "lat": 10.7431,
+      "lng": 106.7307,
+      "source": "manual"
+    },
+    {
+      "name": "Lẩu Cua Đồng Út Nhung",
+      "address": "Đường Lâm Văn Bền, P. Tân Kiểng, Quận 7, TP.HCM",
+      "area": "quan-7",
+      "cuisineTypes": [
+        "lau",
+        "hai-san"
+      ],
+      "priceMin": 150000,
+      "priceMax": 350000,
+      "lat": 10.7472,
+      "lng": 106.7128,
+      "source": "manual"
+    },
+    {
+      "name": "Bánh Canh Cua 14 Nguyễn Thị Thập",
+      "address": "Nguyễn Thị Thập, P. Bình Thuận, Quận 7, TP.HCM",
+      "area": "quan-7",
+      "cuisineTypes": [
+        "banh-canh"
+      ],
+      "priceMin": 40000,
+      "priceMax": 80000,
+      "lat": 10.7381,
+      "lng": 106.7194,
+      "source": "manual"
+    },
+    {
+      "name": "Ốc Đêm Tân Quy",
+      "address": "Khu chợ Tân Quy, Quận 7, TP.HCM",
+      "area": "quan-7",
+      "cuisineTypes": [
+        "oc",
+        "hai-san"
+      ],
+      "priceMin": 50000,
+      "priceMax": 200000,
+      "lat": 10.7449,
+      "lng": 106.7161,
+      "source": "manual"
+    }
+  ],
+  "contents": [
+    {
+      "restaurantName": "Bún Mắm Cô Ba Phú Mỹ Hưng",
+      "mediaType": "video",
+      "caption": "Bún mắm đúng vị miền Tây giữa PMH, nước lèo đậm không bị ngọt gắt.",
+      "sourcePlatform": "tiktok",
+      "sourceUrl": "https://www.tiktok.com/@foodreview.example/video/000000001",
+      "sourceAuthor": "@foodreview.example",
+      "occasions": [
+        "gia-dinh",
+        "an-trua"
+      ]
+    },
+    {
+      "restaurantName": "Cơm Tấm Đêm Huỳnh Tấn Phát",
+      "mediaType": "video",
+      "caption": "Sườn nướng than thật, 1h sáng vẫn đông. Giá sinh viên.",
+      "sourcePlatform": "tiktok",
+      "sourceUrl": "https://www.tiktok.com/@saigon.ankhuya/video/000000002",
+      "sourceAuthor": "@saigon.ankhuya",
+      "occasions": [
+        "an-khuya"
+      ]
+    },
+    {
+      "restaurantName": "Lẩu Cua Đồng Út Nhung",
+      "mediaType": "text",
+      "sourcePlatform": "threads",
+      "sourceUrl": "https://www.threads.net/@anthiet.example/post/000000003",
+      "sourceAuthor": "@anthiet.example",
+      "occasions": [
+        "gia-dinh",
+        "hop-nhom"
+      ]
+    },
+    {
+      "restaurantName": "Bánh Canh Cua 14 Nguyễn Thị Thập",
+      "mediaType": "image",
+      "sourcePlatform": "threads",
+      "sourceUrl": "https://www.threads.net/@review.q7/post/000000004",
+      "sourceAuthor": "@review.q7",
+      "occasions": [
+        "an-trua",
+        "an-mot-minh"
+      ]
+    },
+    {
+      "restaurantName": "Ốc Đêm Tân Quy",
+      "mediaType": "video",
+      "caption": "Ốc hương cháy tỏi ở đây làm sạch, không tanh. Mở tới 2h sáng.",
+      "sourcePlatform": "tiktok",
+      "sourceUrl": "https://www.tiktok.com/@ocsaigon.example/video/000000005",
+      "sourceAuthor": "@ocsaigon.example",
+      "occasions": [
+        "an-khuya",
+        "hop-nhom"
+      ]
+    }
+  ]
+}

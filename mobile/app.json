@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Ăn Thiệt",
+    "slug": "an-thiet",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Ăn Thiệt dùng vị trí để tìm quán gần bạn và xác thực check-in tại quán.",
+        "NSCameraUsageDescription": "Ăn Thiệt dùng camera để chụp ảnh xác thực bạn đang ở quán (ảnh chụp trong app giữ nguyên geotag)."
+      }
+    },
+    "android": {
+      "package": "vn.anthiet.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_MEDIA_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      "expo-location",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Ăn Thiệt dùng camera để chụp ảnh xác thực tại quán."
+        }
+      ]
+    ]
+  }
+}

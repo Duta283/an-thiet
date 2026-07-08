@@ -1,0 +1,82 @@
+# ============================================================
+# Ăn Thiệt — staging/production (VPS)
+# Chạy: docker compose -f docker-compose.prod.yml up -d --build
+# Secrets: KHÔNG hardcode — đọc từ .env cạnh file này
+# (copy .env.staging.example → .env rồi điền; .env không commit)
+# ============================================================
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: anthiet-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anthiet
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Thiếu POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: anthiet
+    # KHÔNG expose port ra ngoài — chỉ mạng nội bộ compose.
+    # Cần psql từ máy dev: dùng `docker exec` hoặc SSH tunnel.
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      # PERSISTENT: dữ liệu check-in thật của pilot nằm ở đây.
+      # Volume named sống qua `compose down` (chỉ mất khi down -v — ĐỪNG).
+      # Backup: xem docs/deploy-staging.md mục Backup.
+      - anthiet_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anthiet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: anthiet-typesense
+    restart: unless-stopped
+    command: "--data-dir /data --api-key=${TYPESENSE_API_KEY:?Thiếu TYPESENSE_API_KEY trong .env}"
+    volumes:
+      # Persistent nhưng KHÔNG cần backup — dựng lại được từ Postgres
+      # bằng POST /admin/search/reindex
+      - anthiet_tsdata:/data
+
+  api:
+    build: ./backend
+    container_name: anthiet-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      typesense:
+        condition: service_started
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgres://anthiet:${POSTGRES_PASSWORD}@db:5432/anthiet
+      TYPESENSE_HOST: typesense
+      TYPESENSE_PORT: "8108"
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY}
+      ADMIN_KEY: ${ADMIN_KEY:?Thiếu ADMIN_KEY trong .env}
+      AUTH_MODE: ${AUTH_MODE:-firebase}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: anthiet-caddy
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Thiếu DOMAIN trong .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - anthiet_caddy_data:/data      # chứng chỉ TLS — persistent để không xin lại mỗi lần restart
+      - anthiet_caddy_config:/config
+
+volumes:
+  anthiet_pgdata:
+  anthiet_tsdata:
+  anthiet_caddy_data:
+  anthiet_caddy_config:

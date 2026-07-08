@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.env
+*.env.local
+backups/
+*.sql.gz
+
+# Expo / mobile
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# OS/IDE
+.DS_Store
+Thumbs.db

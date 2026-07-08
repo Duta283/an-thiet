@@ -1,0 +1,39 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_API_BASE": "https://an-thiet-production.up.railway.app",
+        "APP_AUTH_MODE": "firebase"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "APP_API_BASE": "https://api.anthiet.vn",
+        "APP_AUTH_MODE": "firebase"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {},
+      "android": {
+        "track": "internal"
+      }
+    }
+  }
+}

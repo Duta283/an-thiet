@@ -1,0 +1,5 @@
+# TLS tự động (Let's Encrypt) — chỉ cần DNS A record trỏ về VPS trước khi up
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy api:3000
+}
