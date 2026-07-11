@@ -6,7 +6,7 @@ Thay thế phương án VPS (`deploy-staging.md`) nếu team chọn Railway. Lư
 
 Postgres mặc định của Railway **không có PostGIS** — backend sẽ chết ngay ở `CREATE EXTENSION postgis`. Hai cách:
 
-- Cách A (khuyến nghị): New Service → Docker Image → `postgis/postgis:16-3.4`. Gắn **Volume** vào `/var/lib/postgresql/data` (không volume = mất sạch dữ liệu mỗi lần redeploy). Set env: `POSTGRES_USER=anthiet`, `POSTGRES_PASSWORD=<sinh ngẫu nhiên>`, `POSTGRES_DB=anthiet`.
+- Cách A (khuyến nghị): New Service → Docker Image → `postgis/postgis:16-3.4`. Gắn **Volume** vào `/var/lib/postgresql/data` — GẮN NGAY LÚC TẠO SERVICE, thao tác từ canvas (chuột phải service → Attach Volume), KHÔNG nằm trong tab Settings. (BẪY #7 — đã dính thực tế 07/2026: không volume = dữ liệu nằm trong container, MẤT SẠCH mỗi lần redeploy/đổi biến env; triệu chứng nhận biết: service db không có tab Backups. Sau khi gắn volume muộn phải chạy lại init.sql + seed + reindex, rồi bật Backups Daily trên volume. KÈM BẪY #7b: gắn volume xong Postgres CRASH ngay với "initdb: directory exists but is not empty" — volume Railway có sẵn lost+found; sửa bằng biến env `PGDATA=/var/lib/postgresql/data/pgdata` rồi redeploy.) Set env: `POSTGRES_USER=anthiet`, `POSTGRES_PASSWORD=<sinh ngẫu nhiên>`, `POSTGRES_DB=anthiet`.
 - Cách B: template "PostGIS" có sẵn trên Railway marketplace.
 
 Schema KHÔNG tự chạy (không có cơ chế initdb mount như compose) — chạy tay sau khi service lên:

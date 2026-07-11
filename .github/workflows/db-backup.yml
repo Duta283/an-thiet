@@ -1,0 +1,38 @@
+# Backup Postgres hằng ngày bằng GitHub Actions (Railway trial không có tab Backups).
+# - Chạy 20:00 UTC = 3:00 sáng VN mỗi ngày, hoặc bấm tay (workflow_dispatch).
+# - Kết nối qua TCP proxy public của Railway, dump định dạng nén (-Fc).
+# - Lưu thành artifact của workflow run, giữ 30 ngày.
+# Cần secret: DATABASE_PUBLIC_URL (Settings > Secrets and variables > Actions)
+#   dạng: postgresql://anthiet:<password>@<host proxy>:<port>/anthiet
+
+name: db-backup
+
+on:
+  schedule:
+    - cron: "0 20 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cài postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: pg_dump
+        env:
+          DB_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+        run: |
+          test -n "$DB_URL" || { echo "Thiếu secret DATABASE_PUBLIC_URL"; exit 1; }
+          FILE="anthiet-$(date +%F).dump"
+          pg_dump "$DB_URL" -Fc -f "$FILE"
+          ls -lh "$FILE"
+          # kiểm tra dump đọc được (không phải file rỗng/hỏng)
+          pg_restore -l "$FILE" | head -5
+
+      - name: Upload artifact (giữ 30 ngày)
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: anthiet-*.dump
+          retention-days: 30
