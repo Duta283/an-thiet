@@ -30,6 +30,8 @@ export function SavedScreen({ navigation }: { navigation: any }) {
       style={{ backgroundColor: colors.bg }}
       data={rows}
       keyExtractor={(r) => r.id}
+      numColumns={2}
+      contentContainerStyle={{ padding: 6 }}
       refreshing={loading}
       onRefresh={load}
       renderItem={({ item }) => (

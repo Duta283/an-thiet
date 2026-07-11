@@ -1,5 +1,6 @@
 export const colors = {
-  primary: '#E8590C',      // cam đất — "ăn thiệt", không màu mè
+  primary: '#E8590C',      // cam đậm cho nút/chữ (đạt contrast trên nền trắng)
+  brand: '#FF754B',        // cam mascot Ăn Gì Ta? — nền splash/icon, mảng lớn
   bg: '#FFFFFF',
   card: '#FAF6F2',
   text: '#1F1B16',

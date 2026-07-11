@@ -5,12 +5,29 @@ import { colors } from '../theme';
 export interface RestaurantCardData {
   id: string;
   name: string;
-  address?: string | null;
+  address?: string | null; // giữ trong props nhưng KHÔNG hiển thị — feedback team: bớt chữ
   cuisineTypes: string[];
   priceMin?: number | null;
   priceMax?: number | null;
   verifiedCount?: number;
   distanceM?: number;
+}
+
+const CUISINE_EMOJI: Record<string, string> = {
+  bun: '🍜',
+  'com-tam': '🍚',
+  lau: '🍲',
+  'banh-canh': '🍜',
+  oc: '🐚',
+  'hai-san': '🦐',
+  'mien-tay': '🌾',
+};
+
+function cuisineEmoji(types: string[]): string {
+  for (const t of types) {
+    if (CUISINE_EMOJI[t]) return CUISINE_EMOJI[t];
+  }
+  return '🍽️';
 }
 
 function formatPrice(min?: number | null, max?: number | null): string {
@@ -20,6 +37,11 @@ function formatPrice(min?: number | null, max?: number | null): string {
   return f((min || max)!);
 }
 
+/**
+ * Tile dạng lưới 2 cột (feedback đội seed: "ô vuông giống GrabFood, bớt chữ").
+ * Khối ảnh đang là emoji món ăn — placeholder chờ pipeline ảnh quán thật
+ * (cần PO/design chốt nguồn ảnh, xem mục bàn giao).
+ */
 export function RestaurantCard({
   data,
   onPress,
@@ -29,50 +51,77 @@ export function RestaurantCard({
 }) {
   const price = formatPrice(data.priceMin, data.priceMax);
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.row}>
+    <Pressable
+      style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+      onPress={onPress}
+    >
+      <View style={styles.visual}>
+        <Text style={styles.visualEmoji}>{cuisineEmoji(data.cuisineTypes)}</Text>
+        {data.verifiedCount !== undefined && data.verifiedCount > 0 && (
+          <View style={styles.verifiedBadge}>
+            <Text style={styles.verifiedBadgeText}>✓ {data.verifiedCount}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           {data.name}
         </Text>
-        {data.verifiedCount !== undefined && data.verifiedCount > 0 && (
-          <Text style={styles.verified}>✓ {data.verifiedCount}</Text>
-        )}
-      </View>
-      {!!data.address && (
-        <Text style={styles.muted} numberOfLines={1}>
-          {data.address}
-        </Text>
-      )}
-      <View style={styles.row}>
-        <Text style={styles.muted}>
-          {data.cuisineTypes.join(' · ')}
-          {price ? `  ·  ${price}` : ''}
-        </Text>
-        {data.distanceM !== undefined && (
-          <Text style={styles.muted}>
-            {data.distanceM < 1000
-              ? `${Math.round(data.distanceM)}m`
-              : `${(data.distanceM / 1000).toFixed(1)}km`}
-          </Text>
-        )}
+        <View style={styles.metaRow}>
+          {!!price && <Text style={styles.price}>{price}</Text>}
+          {data.distanceM !== undefined && (
+            <Text style={styles.distance}>
+              {data.distanceM < 1000
+                ? `${Math.round(data.distanceM)}m`
+                : `${(data.distanceM / 1000).toFixed(1)}km`}
+            </Text>
+          )}
+        </View>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
+  tile: {
+    backgroundColor: colors.bg,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 4,
-    marginHorizontal: 12,
-    marginVertical: 5,
-    padding: 12,
+    elevation: 2,
+    flex: 1,
+    margin: 6,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  name: { color: colors.text, flex: 1, fontSize: 16, fontWeight: '700' },
-  verified: { color: colors.verified, fontWeight: '700' },
-  muted: { color: colors.textMuted, fontSize: 13 },
+  tilePressed: { opacity: 0.75, transform: [{ scale: 0.98 }] },
+  visual: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    height: 92,
+    justifyContent: 'center',
+  },
+  visualEmoji: { fontSize: 42 },
+  verifiedBadge: {
+    backgroundColor: colors.verified,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    position: 'absolute',
+    right: 6,
+    top: 6,
+  },
+  verifiedBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  info: { gap: 2, padding: 10 },
+  name: { color: colors.text, fontSize: 14.5, fontWeight: '700' },
+  metaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  price: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+  distance: { color: colors.textMuted, fontSize: 12 },
 });

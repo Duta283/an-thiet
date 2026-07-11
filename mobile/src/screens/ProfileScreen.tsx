@@ -67,8 +67,8 @@ export function ProfileScreen() {
           </View>
         )}
         <Text style={[styles.muted, { marginTop: 8 }]}>
-          Điểm này chỉ dùng xếp hạng hiển thị nội dung — Ăn Thiệt không có điểm
-          sao và không bán thứ hạng.
+          Điểm này chỉ dùng xếp hạng hiển thị nội dung — Ăn Gì Ta? không có
+          điểm sao và không bán thứ hạng.
         </Text>
       </View>
 

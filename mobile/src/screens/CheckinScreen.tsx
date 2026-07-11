@@ -160,7 +160,7 @@ export function CheckinScreen({
     <View style={styles.container}>
       <Text style={styles.title}>Check-in: {restaurantName}</Text>
       <Text style={styles.muted}>
-        Ăn Thiệt xác thực bạn thật sự ở quán bằng GPS và ảnh chụp tại chỗ —
+        Ăn Gì Ta? xác thực bạn thật sự ở quán bằng GPS và ảnh chụp tại chỗ —
         không điểm sao, không quảng cáo, chỉ nội dung thật.
       </Text>
 

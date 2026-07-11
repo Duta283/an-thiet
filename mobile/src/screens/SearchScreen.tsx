@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -12,14 +13,14 @@ import type { SearchHit } from '../api/types';
 import { RestaurantCard } from '../components/RestaurantCard';
 import { colors } from '../theme';
 
-/** Facet "dịp" — trục search khác biệt của Ăn Thiệt */
+/** Facet "dịp" — trục search khác biệt của Ăn Gì Ta? */
 const OCCASIONS = [
   { key: '', label: 'Tất cả' },
-  { key: 'an-khuya', label: 'Ăn khuya' },
-  { key: 'hen-ho', label: 'Hẹn hò' },
-  { key: 'gia-dinh', label: 'Gia đình' },
-  { key: 'hop-nhom', label: 'Họp nhóm' },
-  { key: 'an-trua', label: 'Ăn trưa' },
+  { key: 'an-khuya', label: '🌙 Khuya' },
+  { key: 'hen-ho', label: '💛 Hẹn hò' },
+  { key: 'gia-dinh', label: '👨‍👩‍👧 Gia đình' },
+  { key: 'hop-nhom', label: '🍻 Nhóm' },
+  { key: 'an-trua', label: '☀️ Trưa' },
 ];
 
 const PRICES = [
@@ -29,6 +30,9 @@ const PRICES = [
   { key: 200000, label: '≤200k' },
 ];
 
+/** Ngừng gõ bao lâu thì tự tìm — search-as-you-type, không cần nhấn enter */
+const DEBOUNCE_MS = 350;
+
 export function SearchScreen({ navigation }: { navigation: any }) {
   const [q, setQ] = useState('');
   const [occasion, setOccasion] = useState('');
@@ -36,8 +40,10 @@ export function SearchScreen({ navigation }: { navigation: any }) {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestSeq = useRef(0);
 
   const run = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
     try {
@@ -46,29 +52,36 @@ export function SearchScreen({ navigation }: { navigation: any }) {
         occasion: occasion || undefined,
         priceMax: priceMax || undefined,
       });
-      setHits(res.hits);
+      // Bỏ response về muộn — chỉ nhận kết quả của lần gõ mới nhất
+      if (seq === requestSeq.current) setHits(res.hits);
     } catch (e) {
-      setError(String(e));
+      if (seq === requestSeq.current) setError(String(e));
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }, [q, occasion, priceMax]);
 
+  // Search-as-you-type (feedback đội seed: không phải nhấn enter)
   useEffect(() => {
-    run();
-  }, [occasion, priceMax]); // eslint-disable-line react-hooks/exhaustive-deps
+    const t = setTimeout(run, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [run]);
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Món gì, quán gì? (vd: bún mắm)"
-        placeholderTextColor={colors.textMuted}
-        value={q}
-        onChangeText={setQ}
-        onSubmitEditing={run}
-        returnKeyType="search"
-      />
+      <View style={styles.searchBox}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Món gì, quán gì?"
+          placeholderTextColor={colors.textMuted}
+          value={q}
+          onChangeText={setQ}
+          returnKeyType="search"
+          autoCorrect={false}
+        />
+        {loading && <ActivityIndicator size="small" color={colors.primary} />}
+      </View>
 
       <View style={styles.chips}>
         {OCCASIONS.map((o) => (
@@ -95,13 +108,17 @@ export function SearchScreen({ navigation }: { navigation: any }) {
       <FlatList
         data={hits}
         keyExtractor={(h) => h.id}
-        refreshing={loading}
-        onRefresh={run}
+        numColumns={2}
+        contentContainerStyle={styles.grid}
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           loading ? null : (
-            <Text style={styles.empty}>
-              Chưa có kết quả — thử từ khoá/bộ lọc khác
-            </Text>
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyEmoji}>🍜</Text>
+              <Text style={styles.empty}>
+                Chưa thấy quán nào khớp{'\n'}Thử từ khoá khác xem
+              </Text>
+            </View>
           )
         }
         renderItem={({ item }) => (
@@ -138,6 +155,7 @@ function Chip({
     <TouchableOpacity
       style={[styles.chip, active && styles.chipActive]}
       onPress={onPress}
+      activeOpacity={0.7}
     >
       <Text style={[styles.chipText, active && styles.chipTextActive]}>
         {label}
@@ -148,16 +166,19 @@ function Chip({
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.bg, flex: 1, paddingTop: 8 },
-  input: {
+  searchBox: {
+    alignItems: 'center',
     backgroundColor: colors.card,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    color: colors.text,
-    fontSize: 16,
+    flexDirection: 'row',
+    gap: 8,
     marginHorizontal: 12,
-    padding: 12,
+    paddingHorizontal: 12,
   },
+  searchIcon: { fontSize: 15 },
+  input: { color: colors.text, flex: 1, fontSize: 16, paddingVertical: 12 },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -166,15 +187,24 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   chip: {
+    backgroundColor: colors.bg,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.textMuted, fontSize: 13 },
   chipTextActive: { color: '#fff', fontWeight: '700' },
-  empty: { color: colors.textMuted, padding: 24, textAlign: 'center' },
+  grid: { paddingBottom: 24, paddingHorizontal: 6, paddingTop: 6 },
+  emptyBox: { alignItems: 'center', gap: 8, paddingTop: 48 },
+  emptyEmoji: { fontSize: 40 },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
   error: { color: colors.danger, paddingHorizontal: 12, paddingTop: 8 },
 });

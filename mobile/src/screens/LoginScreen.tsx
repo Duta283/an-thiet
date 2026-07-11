@@ -42,8 +42,8 @@ export function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.logo}>Ăn Thiệt</Text>
-      <Text style={styles.tagline}>Tìm quán ăn thật — không sao, không quảng cáo</Text>
+      <Text style={styles.logo}>Ăn Gì Ta?</Text>
+      <Text style={styles.tagline}>Hết phân vân ăn gì — quán thật, review thật</Text>
 
       {mode === 'up' && (
         <TextInput

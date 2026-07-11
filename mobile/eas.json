@@ -16,7 +16,8 @@
       },
       "env": {
         "APP_API_BASE": "https://an-thiet-production.up.railway.app",
-        "APP_AUTH_MODE": "firebase"
+        "APP_AUTH_MODE": "firebase",
+        "APP_GOONG_MAPTILES_KEY": "nOkqCjLRH3iOHM3Z3faO7s8nMnMm1sULeKk5kvoz"
       }
     },
     "production": {

@@ -40,12 +40,12 @@ export const DEV_USER_ID = 'PASTE_SEEDED_USER_UUID';
 
 /** Firebase web config (Project settings > General > Your apps) */
 export const FIREBASE_CONFIG = {
-  apiKey: 'YOUR_FIREBASE_API_KEY',
+  apiKey: 'AIzaSyCZf1x7G7OlBxZmA5mqSd8lzOuBTB5monQ',
   authDomain: 'an-thiet.firebaseapp.com',
   projectId: 'an-thiet',
-  storageBucket: 'an-thiet.appspot.com',
-  messagingSenderId: '000000000000',
-  appId: 'YOUR_FIREBASE_APP_ID',
+  storageBucket: 'an-thiet.firebasestorage.app',
+  messagingSenderId: '427925396388',
+  appId: '1:427925396388:web:58e2f10ffff4f6fb91ff31',
 };
 
 /** Tâm mặc định: Quận 7, TP.HCM (khu vực pilot) */

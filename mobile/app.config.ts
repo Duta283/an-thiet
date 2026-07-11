@@ -7,8 +7,10 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
  */
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...(config as ExpoConfig),
-  // OTA update qua EAS Update — bản trong tay đội seed tự nhận code mới
-  runtimeVersion: { policy: 'appVersion' },
+  // OTA update qua EAS Update — bản trong tay đội seed tự nhận code mới.
+  // 'sdkVersion' để chạy được trong EXPO GO (kênh A pilot); khi chuyển sang
+  // build standalone TestFlight/Play (kênh B) thì đổi thành 'appVersion'.
+  runtimeVersion: { policy: 'sdkVersion' },
   updates: process.env.EAS_PROJECT_ID
     ? { url: `https://u.expo.dev/${process.env.EAS_PROJECT_ID}` }
     : config.updates,

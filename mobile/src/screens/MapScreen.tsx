@@ -7,7 +7,7 @@ import { DEFAULT_CENTER, GOONG_MAPTILES_KEY } from '../config';
 import { colors } from '../theme';
 
 /**
- * Bản đồ Goong qua goong-js trong WebView.
+ * Bản đồ qua MapLibre GL trong WebView (tương thích style Goong).
  *
  * QUYẾT ĐỊNH KỸ THUẬT (v0): dùng WebView để chạy được ngay trong Expo Go,
  * không cần native build — đủ cho pilot demo. Khi vào giai đoạn polish,
@@ -31,22 +31,43 @@ export function MapScreen({ navigation }: { navigation: any }) {
     }
   }, [restaurants]);
 
+  const hasGoongKey =
+    GOONG_MAPTILES_KEY && !GOONG_MAPTILES_KEY.startsWith('YOUR_');
+
+  // MapLibre GL (mở, tương thích style Goong). Style:
+  // - Có Goong Maptiles Key → tile Goong (tối ưu địa chỉ VN)
+  // - Chưa có key (đang chờ Goong kích hoạt tài khoản) → fallback OSM raster,
+  //   đủ dùng cho pilot; publish lại với APP_GOONG_MAPTILES_KEY là tự chuyển.
+  const styleExpr = hasGoongKey
+    ? `'https://tiles.goong.io/assets/goong_map_web.json?api_key=${GOONG_MAPTILES_KEY}'`
+    : `{
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
+          }
+        },
+        layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+      }`;
+
   const html = `<!DOCTYPE html><html><head>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <style>html,body,#map{margin:0;height:100%}</style>
   </head><body><div id="map"></div><script>
-    goongjs.accessToken = '${GOONG_MAPTILES_KEY}';
-    var map = new goongjs.Map({
+    var map = new maplibregl.Map({
       container: 'map',
-      style: 'https://tiles.goong.io/assets/goong_map_web.json',
+      style: ${styleExpr},
       center: [${DEFAULT_CENTER.lng}, ${DEFAULT_CENTER.lat}],
       zoom: 13
     });
     function render(list) {
       list.forEach(function (r) {
-        var marker = new goongjs.Marker({ color: '${colors.primary}' })
+        var marker = new maplibregl.Marker({ color: '${colors.primary}' })
           .setLngLat([r.lng, r.lat]).addTo(map);
         marker.getElement().addEventListener('click', function () {
           window.ReactNativeWebView.postMessage(r.id);

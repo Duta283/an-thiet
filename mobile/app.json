@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Ăn Thiệt",
+    "name": "Ăn Gì Ta?",
     "slug": "an-thiet",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -19,7 +19,11 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_MEDIA_LOCATION",
         "CAMERA"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF754B"
+      }
     },
     "plugins": [
       "expo-location",
@@ -29,6 +33,21 @@
           "cameraPermission": "Ăn Thiệt dùng camera để chụp ảnh xác thực tại quán."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "apiBase": {},
+      "authMode": {},
+      "goongMaptilesKey": {},
+      "eas": {
+        "projectId": "43de769c-8613-4156-96ed-afb39d94f164"
+      }
+    },
+    "owner": "duta999",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#FF754B"
+    }
   }
 }
