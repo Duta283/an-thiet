@@ -64,7 +64,7 @@ export function RestaurantCard({
         )}
       </View>
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {data.name}
         </Text>
         <View style={styles.metaRow}>
@@ -116,7 +116,8 @@ const styles = StyleSheet.create({
   },
   verifiedBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   info: { gap: 2, padding: 10 },
-  name: { color: colors.text, fontSize: 14.5, fontWeight: '700' },
+  // 2 dòng + minHeight để các tile trong cùng hàng cao đều nhau
+  name: { color: colors.text, fontSize: 14.5, fontWeight: '700', lineHeight: 19, minHeight: 38 },
   metaRow: {
     alignItems: 'center',
     flexDirection: 'row',

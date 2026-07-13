@@ -2,8 +2,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, AppState, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { flush, initAnalytics, trackSessionResume } from './src/analytics';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { CheckinScreen } from './src/screens/CheckinScreen';
@@ -23,14 +24,15 @@ function Tabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: colors.primary,
-        tabBarIcon: ({ color }) => {
-          const icons: Record<string, string> = {
-            'Khám phá': '🔍',
-            'Bản đồ': '🗺️',
-            'Để dành': '🔖',
-            'Cá nhân': '👤',
+        tabBarIcon: ({ color, focused }) => {
+          const icons: Record<string, [keyof typeof Ionicons.glyphMap, keyof typeof Ionicons.glyphMap]> = {
+            'Khám phá': ['search', 'search-outline'],
+            'Bản đồ': ['map', 'map-outline'],
+            'Để dành': ['bookmark', 'bookmark-outline'],
+            'Cá nhân': ['person', 'person-outline'],
           };
-          return <Text style={{ color, fontSize: 18 }}>{icons[route.name]}</Text>;
+          const [on, off] = icons[route.name] ?? ['ellipse', 'ellipse-outline'];
+          return <Ionicons name={focused ? on : off} size={21} color={color} />;
         },
       })}
     >

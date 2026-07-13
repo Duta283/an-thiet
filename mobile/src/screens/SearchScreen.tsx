@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,13 +15,13 @@ import { RestaurantCard } from '../components/RestaurantCard';
 import { colors } from '../theme';
 
 /** Facet "dịp" — trục search khác biệt của Ăn Gì Ta? */
-const OCCASIONS = [
-  { key: '', label: 'Tất cả' },
-  { key: 'an-khuya', label: '🌙 Khuya' },
-  { key: 'hen-ho', label: '💛 Hẹn hò' },
-  { key: 'gia-dinh', label: '👨‍👩‍👧 Gia đình' },
-  { key: 'hop-nhom', label: '🍻 Nhóm' },
-  { key: 'an-trua', label: '☀️ Trưa' },
+const OCCASIONS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap | null }[] = [
+  { key: '', label: 'Tất cả', icon: null },
+  { key: 'an-khuya', label: 'Khuya', icon: 'moon-outline' },
+  { key: 'hen-ho', label: 'Hẹn hò', icon: 'heart-outline' },
+  { key: 'gia-dinh', label: 'Gia đình', icon: 'people-outline' },
+  { key: 'hop-nhom', label: 'Nhóm', icon: 'beer-outline' },
+  { key: 'an-trua', label: 'Trưa', icon: 'sunny-outline' },
 ];
 
 const PRICES = [
@@ -88,6 +89,7 @@ export function SearchScreen({ navigation }: { navigation: any }) {
           <Chip
             key={o.key}
             label={o.label}
+            icon={o.icon}
             active={occasion === o.key}
             onPress={() => setOccasion(o.key)}
           />
@@ -144,10 +146,12 @@ export function SearchScreen({ navigation }: { navigation: any }) {
 
 function Chip({
   label,
+  icon,
   active,
   onPress,
 }: {
   label: string;
+  icon?: keyof typeof Ionicons.glyphMap | null;
   active: boolean;
   onPress: () => void;
 }) {
@@ -157,6 +161,13 @@ function Chip({
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={13}
+          color={active ? '#fff' : colors.textMuted}
+        />
+      )}
       <Text style={[styles.chipText, active && styles.chipTextActive]}>
         {label}
       </Text>
@@ -187,10 +198,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   chip: {
+    alignItems: 'center',
     backgroundColor: colors.bg,
     borderColor: colors.border,
     borderRadius: 18,
     borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
     paddingHorizontal: 11,
     paddingVertical: 6,
   },

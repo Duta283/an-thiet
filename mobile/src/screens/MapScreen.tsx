@@ -1,22 +1,28 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { WebView } from 'react-native-webview';
 import { api } from '../api/client';
 import type { Restaurant } from '../api/types';
+import { RestaurantCard } from '../components/RestaurantCard';
 import { DEFAULT_CENTER, GOONG_MAPTILES_KEY } from '../config';
 import { colors } from '../theme';
 
 /**
  * Bản đồ qua MapLibre GL trong WebView (tương thích style Goong).
- *
- * QUYẾT ĐỊNH KỸ THUẬT (v0): dùng WebView để chạy được ngay trong Expo Go,
- * không cần native build — đủ cho pilot demo. Khi vào giai đoạn polish,
- * chuyển sang @maplibre/maplibre-react-native (native, mượt hơn) + Goong tiles;
- * API backend không đổi.
+ * Đặc tả 08: ẩn icon POI không liên quan của nền Goong (giữ pin quán của app);
+ * thanh dưới bấm được → mở danh sách quán trượt lên.
  */
 export function MapScreen({ navigation }: { navigation: any }) {
   const webref = useRef<WebView>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [listOpen, setListOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -34,10 +40,6 @@ export function MapScreen({ navigation }: { navigation: any }) {
   const hasGoongKey =
     GOONG_MAPTILES_KEY && !GOONG_MAPTILES_KEY.startsWith('YOUR_');
 
-  // MapLibre GL (mở, tương thích style Goong). Style:
-  // - Có Goong Maptiles Key → tile Goong (tối ưu địa chỉ VN)
-  // - Chưa có key (đang chờ Goong kích hoạt tài khoản) → fallback OSM raster,
-  //   đủ dùng cho pilot; publish lại với APP_GOONG_MAPTILES_KEY là tự chuyển.
   const styleExpr = hasGoongKey
     ? `'https://tiles.goong.io/assets/goong_map_web.json?api_key=${GOONG_MAPTILES_KEY}'`
     : `{
@@ -65,6 +67,14 @@ export function MapScreen({ navigation }: { navigation: any }) {
       center: [${DEFAULT_CENTER.lng}, ${DEFAULT_CENTER.lat}],
       zoom: 13
     });
+    // Ẩn POI nền không liên quan (shop, dịch vụ...) — giữ đường/địa danh lớn
+    map.on('load', function () {
+      map.getStyle().layers.forEach(function (l) {
+        if (/poi|shop|amenity/i.test(l.id)) {
+          try { map.setLayoutProperty(l.id, 'visibility', 'none'); } catch (e) {}
+        }
+      });
+    });
     function render(list) {
       list.forEach(function (r) {
         var marker = new maplibregl.Marker({ color: '${colors.primary}' })
@@ -88,22 +98,76 @@ export function MapScreen({ navigation }: { navigation: any }) {
           navigation.navigate('RestaurantDetail', { id: e.nativeEvent.data })
         }
       />
-      <View style={styles.banner}>
+
+      {/* Danh sách trượt lên */}
+      {listOpen && (
+        <View style={styles.sheet}>
+          <FlatList
+            data={restaurants}
+            keyExtractor={(r) => r.id}
+            numColumns={2}
+            contentContainerStyle={{ padding: 6 }}
+            renderItem={({ item }) => (
+              <RestaurantCard
+                data={{
+                  id: item.id,
+                  name: item.name,
+                  cuisineTypes: item.cuisineTypes,
+                  priceMin: item.priceMin,
+                  priceMax: item.priceMax,
+                  distanceM: item.distanceM,
+                }}
+                onPress={() =>
+                  navigation.navigate('RestaurantDetail', { id: item.id })
+                }
+              />
+            )}
+          />
+        </View>
+      )}
+
+      {/* Thanh dưới — bấm để mở/đóng danh sách */}
+      <Pressable
+        style={({ pressed }) => [styles.banner, pressed && { opacity: 0.7 }]}
+        onPress={() => setListOpen((v) => !v)}
+      >
+        <Ionicons
+          name={listOpen ? 'chevron-down' : 'chevron-up'}
+          size={16}
+          color={colors.textMuted}
+        />
         <Text style={styles.bannerText}>
           {restaurants.length} quán quanh Quận 7 (pilot)
+          {listOpen ? '' : ' — chạm để xem danh sách'}
         </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  sheet: {
+    backgroundColor: colors.bg,
+    borderTopColor: colors.border,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    bottom: 40,
+    height: '55%',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
   banner: {
+    alignItems: 'center',
     backgroundColor: colors.card,
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    padding: 8,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    padding: 10,
   },
-  bannerText: { color: colors.textMuted, textAlign: 'center' },
+  bannerText: { color: colors.textMuted, fontSize: 13.5 },
 });

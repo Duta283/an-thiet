@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { api } from '../api/client';
 import type { SavedRow } from '../api/types';
 import { RestaurantCard } from '../components/RestaurantCard';
@@ -47,14 +48,23 @@ export function SavedScreen({ navigation }: { navigation: any }) {
         />
       )}
       ListEmptyComponent={
-        <Text style={styles.empty}>
-          Chưa có quán để dành — bấm "Để dành" ở trang quán
-        </Text>
+        <View style={styles.emptyBox}>
+          <Ionicons name="bookmark-outline" size={36} color={colors.border} />
+          <Text style={styles.empty}>
+            Chưa có quán nào để dành{'\n'}Thấy quán ưng ý ở tab Khám phá,{'\n'}bấm "Để dành" là nó nằm ở đây
+          </Text>
+        </View>
       }
     />
   );
 }
 
 const styles = StyleSheet.create({
-  empty: { color: colors.textMuted, padding: 24, textAlign: 'center' },
+  emptyBox: { alignItems: 'center', gap: 10, paddingTop: 56 },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
 });

@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,16 +14,11 @@ import {
 import { api } from '../api/client';
 import type { CheckinResult } from '../api/types';
 import { colors } from '../theme';
+import { formatDistance, haversineM } from '../utils/geo';
 
 /**
- * Check-in xác thực v0: GPS bắt buộc + ảnh chụp tại chỗ (EXIF) tuỳ chọn.
- *
- * Ảnh BẮT BUỘC chụp trong luồng (launchCameraAsync) — không cho chọn từ
- * thư viện, vì app mạng xã hội thường strip EXIF (đúng thiết kế mục 4.1).
- * Nếu ảnh không có geotag GPS (tuỳ quyền/thiết bị), app nói rõ và
- * check-in tiếp tục với GPS đơn thuần — không giả mạo exif từ vị trí.
- *
- * TODO(Spike 2): gắn Play Integrity / DeviceCheck token.
+ * Đặc tả 08 mục 3: giữ layout, thêm (1) dòng trạng thái GPS trước khi bấm,
+ * (2) loading + kết quả rõ lý do thất bại (tính khoảng cách client-side làm hint).
  */
 
 interface CapturedPhoto {
@@ -30,7 +26,6 @@ interface CapturedPhoto {
   exif: Record<string, unknown> | null;
 }
 
-/** EXIF "YYYY:MM:DD HH:mm:ss" → ISO; null nếu không parse được */
 export function exifDateToIso(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const m = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
@@ -39,7 +34,6 @@ export function exifDateToIso(raw: unknown): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-/** Rút payload exif hợp lệ từ ảnh; null nếu thiếu geotag */
 export function extractExifPayload(
   exif: Record<string, unknown> | null,
 ): { lat: number; lng: number; takenAt: string } | null {
@@ -56,29 +50,71 @@ export function extractExifPayload(
   return { lat: signedLat, lng: signedLng, takenAt };
 }
 
+type GpsState =
+  | { status: 'locating' }
+  | { status: 'ready'; lat: number; lng: number; accuracy: number }
+  | { status: 'denied' };
+
 export function CheckinScreen({
   route,
   navigation,
 }: {
-  route: { params: { restaurantId: string; restaurantName: string } };
+  route: {
+    params: {
+      restaurantId: string;
+      restaurantName: string;
+      restaurantLat?: number;
+      restaurantLng?: number;
+    };
+  };
   navigation: any;
 }) {
-  const { restaurantId, restaurantName } = route.params;
+  const { restaurantId, restaurantName, restaurantLat, restaurantLng } =
+    route.params;
   const [caption, setCaption] = useState('');
   const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
+  const [gps, setGps] = useState<GpsState>({ status: 'locating' });
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<CheckinResult | null>(null);
+  const [failHint, setFailHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Lấy vị trí NGAY khi mở màn — người dùng thấy trạng thái trước khi bấm
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          if (!cancelled) setGps({ status: 'denied' });
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Highest,
+        });
+        if (!cancelled) {
+          setGps({
+            status: 'ready',
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy ?? 999,
+          });
+        }
+      } catch {
+        if (!cancelled) setGps({ status: 'denied' });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function takePhoto() {
     setError(null);
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) throw new Error('Cần quyền camera để chụp ảnh xác thực');
-      const res = await ImagePicker.launchCameraAsync({
-        exif: true,
-        quality: 0.7,
-      });
+      const res = await ImagePicker.launchCameraAsync({ exif: true, quality: 0.7 });
       if (!res.canceled && res.assets[0]) {
         setPhoto({
           uri: res.assets[0].uri,
@@ -91,26 +127,29 @@ export function CheckinScreen({
   }
 
   async function submit() {
+    if (gps.status !== 'ready') return;
     setBusy(true);
     setError(null);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        throw new Error('Cần quyền vị trí để xác thực bạn đang ở quán');
-      }
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest,
-      });
       const exifPayload = photo ? extractExifPayload(photo.exif) : null;
       const res = await api.checkin({
         restaurantId,
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy ?? 999,
+        lat: gps.lat,
+        lng: gps.lng,
+        accuracy: gps.accuracy,
         caption: caption || undefined,
         mediaType: photo ? 'image' : 'text',
         ...(exifPayload ? { exif: exifPayload } : {}),
       });
+      // Hint lý do thất bại (client-side, khớp logic backend)
+      if (!res.isVerified && restaurantLat !== undefined && restaurantLng !== undefined) {
+        const d = haversineM(gps.lat, gps.lng, restaurantLat, restaurantLng);
+        if (d > 100 + gps.accuracy) {
+          setFailHint(`Bạn đang cách quán ~${formatDistance(d)} — cần có mặt tại quán để xác thực.`);
+        } else if (gps.accuracy > 50) {
+          setFailHint(`Tín hiệu GPS đang kém (±${Math.round(gps.accuracy)}m) — thử ra chỗ thoáng rồi check-in lại.`);
+        }
+      }
       setResult(res);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -122,32 +161,36 @@ export function CheckinScreen({
   if (result) {
     return (
       <View style={styles.center}>
-        <Text
-          style={[
-            styles.resultIcon,
-            !result.isVerified && { color: colors.danger },
-          ]}
-        >
-          {result.isVerified ? '✓' : '✕'}
-        </Text>
+        <Ionicons
+          name={result.isVerified ? 'checkmark-circle' : 'close-circle'}
+          size={64}
+          color={result.isVerified ? colors.verified : colors.danger}
+        />
         <Text style={styles.resultTitle}>
           {result.isVerified ? 'Ăn thiệt — đã xác thực!' : 'Chưa xác thực được'}
         </Text>
         {result.verifications.map((v) => (
-          <Text key={v.method} style={styles.muted}>
-            {v.method.toUpperCase()}: {v.result}
-            {v.confidence != null ? ` (tin cậy ${Math.round(v.confidence * 100)}%)` : ''}
-          </Text>
+          <View key={v.method} style={styles.methodRow}>
+            <Ionicons
+              name={v.result === 'passed' ? 'checkmark' : 'close'}
+              size={15}
+              color={v.result === 'passed' ? colors.verified : colors.danger}
+            />
+            <Text style={styles.muted}>
+              {v.method === 'gps' ? 'Vị trí GPS' : v.method === 'exif' ? 'Ảnh chụp tại chỗ' : 'QR'}
+              : {v.result === 'passed' ? 'đạt' : 'không đạt'}
+              {v.confidence != null && v.result === 'passed'
+                ? ` (tin cậy ${Math.round(v.confidence * 100)}%)`
+                : ''}
+            </Text>
+          </View>
         ))}
         {!result.isVerified && (
-          <Text style={[styles.muted, { marginTop: 8, textAlign: 'center' }]}>
-            Hãy đứng gần quán hơn và bật GPS chính xác cao rồi thử lại.
+          <Text style={[styles.muted, styles.hintText]}>
+            {failHint ?? 'Hãy đứng gần quán hơn và bật GPS chính xác cao rồi thử lại.'}
           </Text>
         )}
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.primaryBtnText}>Xong</Text>
         </TouchableOpacity>
       </View>
@@ -168,7 +211,10 @@ export function CheckinScreen({
         {photo ? (
           <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
         ) : (
-          <Text style={styles.photoBtnText}>📷 Chụp ảnh tại quán (khuyến khích)</Text>
+          <View style={styles.photoPlaceholder}>
+            <Ionicons name="camera-outline" size={26} color={colors.textMuted} />
+            <Text style={styles.photoBtnText}>Chụp ảnh tại quán (khuyến khích)</Text>
+          </View>
         )}
       </TouchableOpacity>
       {photo && (
@@ -187,8 +233,40 @@ export function CheckinScreen({
         onChangeText={setCaption}
         multiline
       />
+
+      {/* Dòng trạng thái GPS — đặc tả 08 mục 3 */}
+      <View style={styles.gpsRow}>
+        {gps.status === 'locating' && (
+          <>
+            <ActivityIndicator size="small" color={colors.textMuted} />
+            <Text style={styles.gpsText}>Đang xác định vị trí…</Text>
+          </>
+        )}
+        {gps.status === 'ready' && (
+          <>
+            <Ionicons name="locate" size={15} color={colors.verified} />
+            <Text style={[styles.gpsText, { color: colors.verified }]}>
+              Đã xác định vị trí (±{Math.round(gps.accuracy)}m)
+            </Text>
+          </>
+        )}
+        {gps.status === 'denied' && (
+          <>
+            <Ionicons name="warning-outline" size={15} color={colors.danger} />
+            <Text style={[styles.gpsText, { color: colors.danger }]}>
+              Chưa có quyền vị trí — vào Cài đặt bật Location cho Expo Go
+            </Text>
+          </>
+        )}
+      </View>
+
       {error && <Text style={styles.error}>{error}</Text>}
-      <TouchableOpacity style={styles.primaryBtn} onPress={submit} disabled={busy}>
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, gps.status !== 'ready' && styles.primaryBtnDisabled]}
+        onPress={submit}
+        disabled={busy || gps.status !== 'ready'}
+      >
         {busy ? (
           <ActivityIndicator color="#fff" />
         ) : (
@@ -205,24 +283,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.bg,
     flex: 1,
-    gap: 6,
+    gap: 8,
     justifyContent: 'center',
     padding: 24,
   },
   title: { color: colors.text, fontSize: 20, fontWeight: '800' },
   muted: { color: colors.textMuted, fontSize: 14 },
   photoBtn: {
-    alignItems: 'center',
     backgroundColor: colors.card,
     borderColor: colors.border,
     borderRadius: 10,
     borderStyle: 'dashed',
     borderWidth: 1,
-    justifyContent: 'center',
     minHeight: 120,
     overflow: 'hidden',
   },
-  photoBtnText: { color: colors.textMuted, fontSize: 15 },
+  photoPlaceholder: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 6,
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  photoBtnText: { color: colors.textMuted, fontSize: 14 },
   photoPreview: { height: 180, width: '100%' },
   exifOk: { color: colors.verified, fontSize: 13 },
   exifWarn: { color: colors.textMuted, fontSize: 13, fontStyle: 'italic' },
@@ -236,15 +319,20 @@ const styles = StyleSheet.create({
     padding: 12,
     textAlignVertical: 'top',
   },
+  gpsRow: { alignItems: 'center', flexDirection: 'row', gap: 7 },
+  gpsText: { color: colors.textMuted, fontSize: 13.5 },
   error: { color: colors.danger },
   primaryBtn: {
+    alignItems: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    marginTop: 12,
-    minWidth: 200,
-    padding: 14,
+    borderRadius: 10,
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: 24,
   },
-  primaryBtnText: { color: '#fff', fontWeight: '700', textAlign: 'center' },
-  resultIcon: { color: colors.verified, fontSize: 56, fontWeight: '800' },
+  primaryBtnDisabled: { opacity: 0.45 },
+  primaryBtnText: { color: '#fff', fontSize: 15.5, fontWeight: '700', textAlign: 'center' },
+  methodRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   resultTitle: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  hintText: { marginTop: 8, paddingHorizontal: 12, textAlign: 'center' },
 });

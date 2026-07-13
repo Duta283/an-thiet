@@ -1,14 +1,25 @@
+import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { api } from '../api/client';
 import type { Profile, TrustBreakdown } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
+import { getFirebaseAuth, isFirebaseMode } from '../auth/firebase';
 import { colors } from '../theme';
 
 /**
- * Trust score hiển thị kèm breakdown DIỄN GIẢI ĐƯỢC —
- * nguyên tắc mục 4.2: người dùng phải hiểu vì sao điểm của họ như vậy.
+ * Đặc tả 08 mục 4: avatar tròn, 3 số liệu thành card bấm được,
+ * card Điểm tin cậy giữ nguyên style (khuôn mẫu card toàn app),
+ * khối Cài đặt, rút khoảng trắng.
  */
 export function ProfileScreen() {
   const { userId, signOut } = useAuth();
@@ -33,14 +44,71 @@ export function ProfileScreen() {
     );
   }
 
-  return (
-    <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.container}>
-      <Text style={styles.name}>{profile.displayName}</Text>
-      <Text style={styles.muted}>
-        {profile.followerCount} follower · {profile.followingCount} đang theo dõi ·{' '}
-        {profile.verifiedContentCount} nội dung "ăn thiệt"
-      </Text>
+  const initial = (profile.displayName || '?').trim().charAt(0).toUpperCase();
+  const version = Constants.expoConfig?.version ?? '0.1.0';
 
+  function comingSoon(feature: string) {
+    Alert.alert(feature, 'Tính năng sẽ có ở bản cập nhật sau.');
+  }
+
+  async function changePassword() {
+    if (!isFirebaseMode()) {
+      Alert.alert('Đổi mật khẩu', 'Chỉ khả dụng khi đăng nhập Firebase.');
+      return;
+    }
+    const email = getFirebaseAuth().currentUser?.email;
+    if (!email) return;
+    try {
+      await sendPasswordResetEmail(getFirebaseAuth(), email);
+      Alert.alert('Đã gửi email', `Link đổi mật khẩu đã gửi tới ${email}.`);
+    } catch (e) {
+      Alert.alert('Lỗi', e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  return (
+    <ScrollView
+      style={{ backgroundColor: colors.bg }}
+      contentContainerStyle={styles.container}
+    >
+      {/* Avatar + tên */}
+      <View style={styles.headerRow}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name}>{profile.displayName}</Text>
+          <Text style={styles.mutedSmall}>
+            Thành viên từ {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
+          </Text>
+        </View>
+      </View>
+
+      {/* 3 số liệu — card bấm được */}
+      <View style={styles.statsCard}>
+        <StatBox
+          icon="people-outline"
+          value={profile.followerCount}
+          label="Follower"
+          onPress={() => comingSoon('Danh sách follower')}
+        />
+        <View style={styles.statDivider} />
+        <StatBox
+          icon="person-add-outline"
+          value={profile.followingCount}
+          label="Đang theo dõi"
+          onPress={() => comingSoon('Danh sách đang theo dõi')}
+        />
+        <View style={styles.statDivider} />
+        <StatBox
+          icon="checkmark-circle-outline"
+          value={profile.verifiedContentCount}
+          label={'Ăn thiệt'}
+          onPress={() => comingSoon('Nội dung "ăn thiệt" của bạn')}
+        />
+      </View>
+
+      {/* Điểm tin cậy — giữ nguyên style làm khuôn mẫu */}
       <View style={styles.scoreCard}>
         <Text style={styles.scoreLabel}>Điểm tin cậy</Text>
         <Text style={styles.score}>
@@ -66,23 +134,110 @@ export function ProfileScreen() {
             />
           </View>
         )}
-        <Text style={[styles.muted, { marginTop: 8 }]}>
+        <Text style={[styles.mutedSmall, { marginTop: 8 }]}>
           Điểm này chỉ dùng xếp hạng hiển thị nội dung — Ăn Gì Ta? không có
           điểm sao và không bán thứ hạng.
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.signOut} onPress={signOut}>
-        <Text style={styles.signOutText}>Đăng xuất</Text>
-      </TouchableOpacity>
+      {/* Cài đặt */}
+      <View style={styles.settingsCard}>
+        <SettingRow
+          icon="notifications-outline"
+          label="Thông báo"
+          onPress={() => comingSoon('Thông báo')}
+        />
+        <SettingRow
+          icon="key-outline"
+          label="Đổi mật khẩu"
+          onPress={changePassword}
+        />
+        <SettingRow
+          icon="information-circle-outline"
+          label={`Về Ăn Gì Ta? — phiên bản ${version}`}
+          onPress={() =>
+            Alert.alert(
+              'Ăn Gì Ta?',
+              `Tìm quán ăn thật — không điểm sao, không quảng cáo.\n\nPhiên bản ${version} (pilot Quận 7)`,
+            )
+          }
+        />
+        <SettingRow
+          icon="log-out-outline"
+          label="Đăng xuất"
+          danger
+          onPress={signOut}
+          last
+        />
+      </View>
     </ScrollView>
+  );
+}
+
+function StatBox({
+  icon,
+  value,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: number;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.statBox, pressed && { opacity: 0.6 }]}
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={18} color={colors.primary} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SettingRow({
+  icon,
+  label,
+  onPress,
+  danger,
+  last,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.settingRow,
+        !last && styles.settingRowBorder,
+        pressed && { opacity: 0.6 },
+      ]}
+      onPress={onPress}
+    >
+      <Ionicons
+        name={icon}
+        size={20}
+        color={danger ? colors.danger : colors.textMuted}
+      />
+      <Text style={[styles.settingLabel, danger && { color: colors.danger }]}>
+        {label}
+      </Text>
+      {!danger && (
+        <Ionicons name="chevron-forward" size={16} color={colors.border} />
+      )}
+    </Pressable>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.row}>
-      <Text style={styles.muted}>{label}</Text>
+      <Text style={styles.mutedSmall}>{label}</Text>
       <Text style={styles.rowValue}>{value}</Text>
     </View>
   );
@@ -90,27 +245,55 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24 },
-  container: { gap: 8, padding: 16 },
+  container: { gap: 12, padding: 16 },
+  headerRow: { alignItems: 'center', flexDirection: 'row', gap: 14 },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 32,
+    height: 64,
+    justifyContent: 'center',
+    width: 64,
+  },
+  avatarText: { color: '#fff', fontSize: 28, fontWeight: '800' },
   name: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  muted: { color: colors.textMuted, fontSize: 13 },
+  mutedSmall: { color: colors.textMuted, fontSize: 13 },
+  statsCard: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    paddingVertical: 12,
+  },
+  statBox: { alignItems: 'center', flex: 1, gap: 2 },
+  statDivider: { backgroundColor: colors.border, width: 1 },
+  statValue: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  statLabel: { color: colors.textMuted, fontSize: 12 },
   scoreCard: {
     backgroundColor: colors.card,
     borderColor: colors.border,
     borderRadius: 12,
     borderWidth: 1,
-    marginTop: 12,
     padding: 16,
   },
   scoreLabel: { color: colors.textMuted, fontSize: 13 },
   score: { color: colors.primary, fontSize: 36, fontWeight: '800' },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   rowValue: { color: colors.text, fontSize: 13, fontWeight: '700' },
-  signOut: {
+  settingsCard: {
+    backgroundColor: colors.card,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    marginTop: 16,
-    padding: 12,
+    paddingHorizontal: 14,
   },
-  signOutText: { color: colors.danger, fontWeight: '600', textAlign: 'center' },
+  settingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 13,
+  },
+  settingRowBorder: { borderBottomColor: colors.border, borderBottomWidth: 1 },
+  settingLabel: { color: colors.text, flex: 1, fontSize: 15 },
 });
