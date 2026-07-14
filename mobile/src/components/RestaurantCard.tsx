@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 
 export interface RestaurantCardData {
@@ -9,6 +9,7 @@ export interface RestaurantCardData {
   cuisineTypes: string[];
   priceMin?: number | null;
   priceMax?: number | null;
+  thumbnailUrl?: string | null;
   verifiedCount?: number;
   distanceM?: number;
 }
@@ -56,7 +57,15 @@ export function RestaurantCard({
       onPress={onPress}
     >
       <View style={styles.visual}>
-        <Text style={styles.visualEmoji}>{cuisineEmoji(data.cuisineTypes)}</Text>
+        {data.thumbnailUrl ? (
+          <Image
+            source={{ uri: data.thumbnailUrl }}
+            style={styles.visualImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={styles.visualEmoji}>{cuisineEmoji(data.cuisineTypes)}</Text>
+        )}
         {data.verifiedCount !== undefined && data.verifiedCount > 0 && (
           <View style={styles.verifiedBadge}>
             <Text style={styles.verifiedBadgeText}>✓ {data.verifiedCount}</Text>
@@ -105,6 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   visualEmoji: { fontSize: 42 },
+  visualImage: { height: '100%', width: '100%' },
   verifiedBadge: {
     backgroundColor: colors.verified,
     borderRadius: 6,

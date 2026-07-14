@@ -38,6 +38,7 @@ CREATE TABLE restaurants (
   source        text NOT NULL DEFAULT 'manual'
                   CHECK (source IN ('manual', 'google_places')),
   source_ref    text,                          -- vd: google place_id
+  thumbnail_url text,                          -- ảnh card từ TikTok oEmbed (reindex tự cập nhật)
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 

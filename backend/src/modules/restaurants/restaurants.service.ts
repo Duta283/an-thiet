@@ -56,6 +56,7 @@ export class RestaurantsService {
       return this.dataSource.query(
         `SELECT r.id, r.name, r.address, r.area, r.cuisine_types AS "cuisineTypes",
                 r.price_min AS "priceMin", r.price_max AS "priceMax",
+                r.thumbnail_url AS "thumbnailUrl",
                 r.lat, r.lng,
                 round(ST_Distance(
                   r.location,

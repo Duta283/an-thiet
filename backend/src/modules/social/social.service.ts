@@ -83,6 +83,7 @@ export class SocialService {
     return this.dataSource.query(
       `SELECT s.id, s.list_name AS "listName", s.created_at AS "createdAt",
               r.id AS "restaurantId", r.name, r.area,
+              r.thumbnail_url AS "thumbnailUrl",
               r.cuisine_types AS "cuisineTypes", r.lat, r.lng
        FROM saved_items s
        JOIN restaurants r ON r.id = s.restaurant_id

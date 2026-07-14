@@ -132,6 +132,7 @@ export function SearchScreen({ navigation }: { navigation: any }) {
               cuisineTypes: item.cuisine_types,
               priceMin: item.price_min || null,
               priceMax: item.price_max || null,
+              thumbnailUrl: item.thumbnail_url || null,
               verifiedCount: item.verified_count,
             }}
             onPress={() =>

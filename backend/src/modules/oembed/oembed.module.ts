@@ -8,5 +8,6 @@ import { OembedService } from './oembed.service';
   imports: [TypeOrmModule.forFeature([Content])],
   controllers: [OembedController],
   providers: [OembedService],
+  exports: [OembedService],
 })
 export class OembedModule {}

@@ -8,6 +8,7 @@ export interface Restaurant {
   priceMax: number | null;
   lat: number;
   lng: number;
+  thumbnailUrl?: string | null;
   distanceM?: number;
   contentCount?: number;
   verifiedContentCount?: number;
@@ -25,6 +26,7 @@ export interface SearchHit {
   price_max: number;
   verified_count: number;
   content_count: number;
+  thumbnail_url?: string;
   location: [number, number];
 }
 
@@ -83,6 +85,7 @@ export interface SavedRow {
   restaurantId: string;
   name: string;
   area: string;
+  thumbnailUrl?: string | null;
   cuisineTypes: string[];
   lat: number;
   lng: number;

@@ -110,13 +110,33 @@ export function RestaurantDetailScreen({
               />
             </View>
 
-            <View style={styles.verifiedRow}>
-              <Ionicons name="shield-checkmark" size={15} color={colors.verified} />
-              <Text style={styles.stats}>
-                {restaurant.verifiedContentCount ?? 0} nội dung "ăn thiệt" ·{' '}
-                {restaurant.contentCount ?? 0} tổng
-              </Text>
-            </View>
+            {(restaurant.verifiedContentCount ?? 0) > 0 ? (
+              <View style={styles.verifiedRow}>
+                <Ionicons name="shield-checkmark" size={15} color={colors.verified} />
+                <Text style={styles.stats}>
+                  {restaurant.verifiedContentCount} nội dung "ăn thiệt" ·{' '}
+                  {restaurant.contentCount ?? 0} tổng
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.verifiedRow}
+                activeOpacity={0.7}
+                onPress={() =>
+                  navigation.navigate('Checkin', {
+                    restaurantId: restaurant.id,
+                    restaurantName: restaurant.name,
+                    restaurantLat: restaurant.lat,
+                    restaurantLng: restaurant.lng,
+                  })
+                }
+              >
+                <Ionicons name="sparkles" size={15} color={colors.primary} />
+                <Text style={styles.firstCta}>
+                  Chưa có ai check-in — hãy là người đầu tiên xác thực quán này!
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Check-in = nút chính; Để dành = nút phụ nhẹ hơn */}
             <View style={styles.actions}>
@@ -218,6 +238,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stats: { color: colors.verified, fontSize: 13.5, fontWeight: '600' },
+  firstCta: { color: colors.primary, flex: 1, fontSize: 13.5, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   primaryBtn: {
     alignItems: 'center',

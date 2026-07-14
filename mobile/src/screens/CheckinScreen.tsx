@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
+  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +15,7 @@ import {
 } from 'react-native';
 import { api } from '../api/client';
 import type { CheckinResult } from '../api/types';
+import { useAuth } from '../auth/AuthContext';
 import { colors } from '../theme';
 import { formatDistance, haversineM } from '../utils/geo';
 
@@ -78,6 +81,21 @@ export function CheckinScreen({
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [failHint, setFailHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { userId } = useAuth();
+  const trustBefore = useRef<number | null>(null);
+  const [trustDelta, setTrustDelta] = useState<number | null>(null);
+  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+
+  // Điểm tin cậy trước check-in — để hiển thị mức tăng ở màn thành công (mục 5)
+  useEffect(() => {
+    if (!userId) return;
+    api
+      .trust(userId)
+      .then((t) => {
+        trustBefore.current = t.trustScore;
+      })
+      .catch(() => {});
+  }, [userId]);
 
   // Lấy vị trí NGAY khi mở màn — người dùng thấy trạng thái trước khi bấm
   useEffect(() => {
@@ -150,7 +168,23 @@ export function CheckinScreen({
           setFailHint(`Tín hiệu GPS đang kém (±${Math.round(gps.accuracy)}m) — thử ra chỗ thoáng rồi check-in lại.`);
         }
       }
+      // Mức tăng điểm tin cậy — "khoảnh khắc thưởng" (mục 5)
+      if (res.isVerified && userId && trustBefore.current !== null) {
+        try {
+          const after = await api.trust(userId);
+          const delta = Math.round((after.trustScore - trustBefore.current) * 100);
+          setTrustDelta(delta > 0 ? delta : 0);
+        } catch {
+          setTrustDelta(null);
+        }
+      }
       setResult(res);
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 60,
+        useNativeDriver: true,
+      }).start();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -161,14 +195,28 @@ export function CheckinScreen({
   if (result) {
     return (
       <View style={styles.center}>
-        <Ionicons
-          name={result.isVerified ? 'checkmark-circle' : 'close-circle'}
-          size={64}
-          color={result.isVerified ? colors.verified : colors.danger}
-        />
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <Ionicons
+            name={result.isVerified ? 'checkmark-circle' : 'close-circle'}
+            size={88}
+            color={result.isVerified ? colors.verified : colors.danger}
+          />
+        </Animated.View>
         <Text style={styles.resultTitle}>
           {result.isVerified ? 'Ăn thiệt — đã xác thực!' : 'Chưa xác thực được'}
         </Text>
+        {result.isVerified && trustDelta !== null && (
+          <Animated.View
+            style={[styles.deltaBadge, { transform: [{ scale: scaleAnim }] }]}
+          >
+            <Ionicons name="trending-up" size={16} color="#fff" />
+            <Text style={styles.deltaText}>
+              {trustDelta > 0
+                ? `+${trustDelta} điểm tin cậy`
+                : 'Điểm tin cậy sẽ tăng khi bạn check-in đều'}
+            </Text>
+          </Animated.View>
+        )}
         {result.verifications.map((v) => (
           <View key={v.method} style={styles.methodRow}>
             <Ionicons
@@ -213,7 +261,10 @@ export function CheckinScreen({
         ) : (
           <View style={styles.photoPlaceholder}>
             <Ionicons name="camera-outline" size={26} color={colors.textMuted} />
-            <Text style={styles.photoBtnText}>Chụp ảnh tại quán (khuyến khích)</Text>
+            <Text style={styles.photoBtnText}>Chụp ảnh tại quán</Text>
+            <Text style={styles.photoBenefit}>
+              Thêm lớp xác thực thứ 2 — nội dung được tin cậy cao hơn
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -251,12 +302,20 @@ export function CheckinScreen({
           </>
         )}
         {gps.status === 'denied' && (
-          <>
-            <Ionicons name="warning-outline" size={15} color={colors.danger} />
-            <Text style={[styles.gpsText, { color: colors.danger }]}>
-              Chưa có quyền vị trí — vào Cài đặt bật Location cho Expo Go
-            </Text>
-          </>
+          <View style={styles.deniedBox}>
+            <View style={styles.gpsRow}>
+              <Ionicons name="location-outline" size={15} color={colors.textMuted} />
+              <Text style={styles.gpsText}>
+                Cần vị trí để xác thực bạn đang ở quán — chỉ dùng lúc check-in.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={() => Linking.openSettings()}
+            >
+              <Text style={styles.settingsBtnText}>Mở Cài đặt để cấp quyền</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -270,7 +329,13 @@ export function CheckinScreen({
         {busy ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.primaryBtnText}>Xác thực vị trí & đăng</Text>
+          <Text style={styles.primaryBtnText}>
+            {gps.status === 'locating'
+              ? 'Đang chờ vị trí…'
+              : gps.status === 'denied'
+                ? 'Cần quyền vị trí để check-in'
+                : 'Xác thực vị trí & đăng'}
+          </Text>
         )}
       </TouchableOpacity>
     </View>
@@ -333,6 +398,28 @@ const styles = StyleSheet.create({
   primaryBtnDisabled: { opacity: 0.45 },
   primaryBtnText: { color: '#fff', fontSize: 15.5, fontWeight: '700', textAlign: 'center' },
   methodRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  deltaBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.verified,
+    borderRadius: 20,
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  deltaText: { color: '#fff', fontSize: 14.5, fontWeight: '800' },
+  deniedBox: { gap: 8 },
+  settingsBtn: {
+    alignSelf: 'flex-start',
+    borderColor: colors.primary,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  settingsBtnText: { color: colors.primary, fontSize: 13.5, fontWeight: '700' },
+  photoBenefit: { color: colors.textMuted, fontSize: 12, paddingHorizontal: 16, textAlign: 'center' },
   resultTitle: { color: colors.text, fontSize: 20, fontWeight: '800' },
   hintText: { marginTop: 8, paddingHorizontal: 12, textAlign: 'center' },
 });

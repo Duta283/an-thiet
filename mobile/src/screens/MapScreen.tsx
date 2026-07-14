@@ -115,6 +115,7 @@ export function MapScreen({ navigation }: { navigation: any }) {
                   cuisineTypes: item.cuisineTypes,
                   priceMin: item.priceMin,
                   priceMax: item.priceMax,
+                  thumbnailUrl: item.thumbnailUrl || null,
                   distanceM: item.distanceM,
                 }}
                 onPress={() =>

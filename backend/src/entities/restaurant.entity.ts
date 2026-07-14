@@ -39,6 +39,10 @@ export class Restaurant {
   @Column({ name: 'source_ref', type: 'text', nullable: true })
   sourceRef: string | null;
 
+  /** Ảnh card lấy từ TikTok oEmbed — reindex tự cập nhật, không nhập tay */
+  @Column({ name: 'thumbnail_url', type: 'text', nullable: true })
+  thumbnailUrl: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

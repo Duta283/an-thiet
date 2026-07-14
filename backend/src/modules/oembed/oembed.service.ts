@@ -57,15 +57,23 @@ export class OembedService {
       throw new BadRequestException('Nội dung này không phải post tổng hợp');
     }
 
-    const cached = this.cache.get(content.sourceUrl);
+    return this.fetchForUrl(content.sourcePlatform, content.sourceUrl);
+  }
+
+  /** Fetch oEmbed theo URL (có cache TTL) — dùng cho cả reindex thumbnail */
+  async fetchForUrl(
+    platform: 'tiktok' | 'threads',
+    url: string,
+  ): Promise<OembedResult> {
+    const cached = this.cache.get(url);
     if (cached && Date.now() - cached.at < TTL_MS) return cached.value;
 
-    const value = await this.fetchOembed(content.sourcePlatform, content.sourceUrl);
+    const value = await this.fetchOembed(platform, url);
     if (this.cache.size >= MAX_CACHE) {
       const oldest = this.cache.keys().next().value;
       if (oldest) this.cache.delete(oldest);
     }
-    this.cache.set(content.sourceUrl, { at: Date.now(), value });
+    this.cache.set(url, { at: Date.now(), value });
     return value;
   }
 

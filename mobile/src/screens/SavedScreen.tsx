@@ -41,6 +41,7 @@ export function SavedScreen({ navigation }: { navigation: any }) {
             id: item.restaurantId,
             name: item.name,
             cuisineTypes: item.cuisineTypes,
+            thumbnailUrl: item.thumbnailUrl || null,
           }}
           onPress={() =>
             navigation.navigate('RestaurantDetail', { id: item.restaurantId })
