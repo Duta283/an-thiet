@@ -144,11 +144,26 @@ export function CheckinScreen({
     }
   }
 
+  const [busyMsg, setBusyMsg] = useState<string | null>(null);
+  const [photoWarn, setPhotoWarn] = useState<string | null>(null);
+
   async function submit() {
     if (gps.status !== 'ready') return;
     setBusy(true);
     setError(null);
     try {
+      // Upload ảnh lên R2 trước — fail thì vẫn check-in tiếp, không phí công thực địa
+      let photoUrls: string[] | undefined;
+      if (photo) {
+        setBusyMsg('Đang tải ảnh lên…');
+        try {
+          const up = await api.uploadPhoto(photo.uri);
+          photoUrls = [up.url];
+        } catch {
+          setPhotoWarn('Ảnh chưa tải lên được — check-in vẫn tiếp tục, thử đăng lại ảnh sau.');
+        }
+        setBusyMsg('Đang xác thực vị trí…');
+      }
       const exifPayload = photo ? extractExifPayload(photo.exif) : null;
       const res = await api.checkin({
         restaurantId,
@@ -158,6 +173,7 @@ export function CheckinScreen({
         caption: caption || undefined,
         mediaType: photo ? 'image' : 'text',
         ...(exifPayload ? { exif: exifPayload } : {}),
+        ...(photoUrls ? { photoUrls } : {}),
       });
       // Hint lý do thất bại (client-side, khớp logic backend)
       if (!res.isVerified && restaurantLat !== undefined && restaurantLng !== undefined) {
@@ -189,6 +205,7 @@ export function CheckinScreen({
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+      setBusyMsg(null);
     }
   }
 
@@ -320,6 +337,7 @@ export function CheckinScreen({
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
+      {photoWarn && <Text style={styles.exifWarn}>{photoWarn}</Text>}
 
       <TouchableOpacity
         style={[styles.primaryBtn, gps.status !== 'ready' && styles.primaryBtnDisabled]}
@@ -327,7 +345,11 @@ export function CheckinScreen({
         disabled={busy || gps.status !== 'ready'}
       >
         {busy ? (
-          <ActivityIndicator color="#fff" />
+          busyMsg ? (
+            <Text style={styles.primaryBtnText}>{busyMsg}</Text>
+          ) : (
+            <ActivityIndicator color="#fff" />
+          )
         ) : (
           <Text style={styles.primaryBtnText}>
             {gps.status === 'locating'

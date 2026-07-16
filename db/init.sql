@@ -60,6 +60,7 @@ CREATE TABLE contents (
   source_url      text,   -- link-out về post gốc (oEmbed/trích dẫn — chờ kết quả Spike 1)
   source_author   text,   -- credit tác giả gốc
   occasions       text[] NOT NULL DEFAULT '{}', -- dịp: 'hen-ho', 'gia-dinh', 'an-khuya'...
+  photo_urls      text[] NOT NULL DEFAULT '{}', -- ảnh check-in trên R2 (URL public)
   report_count    integer NOT NULL DEFAULT 0,
   is_hidden       boolean NOT NULL DEFAULT false,
   created_at      timestamptz NOT NULL DEFAULT now(),

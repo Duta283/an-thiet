@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsISO8601,
@@ -8,6 +9,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   Min,
   ValidateNested,
@@ -52,6 +54,13 @@ export class CheckinDto {
   @IsArray()
   @IsString({ each: true })
   occasions?: string[];
+
+  /** Ảnh đã upload qua POST /media/upload (URL R2), tối đa 5 */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsUrl({}, { each: true })
+  photoUrls?: string[];
 
   /** EXIF ảnh chụp tại chỗ (nếu có) — chạy song song GPS theo mục 4.1 */
   @IsOptional()

@@ -41,6 +41,7 @@ export class ContentService {
               c.media_type AS "mediaType", c.caption, c.origin,
               c.source_platform AS "sourcePlatform", c.source_url AS "sourceUrl",
               c.source_author AS "sourceAuthor", c.occasions,
+              c.photo_urls AS "photoUrls",
               c.created_at AS "createdAt",
               EXISTS (
                 SELECT 1 FROM verifications v

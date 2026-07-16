@@ -85,6 +85,7 @@ export class VerificationService {
         caption: dto.caption ?? null,
         origin: 'user_generated',
         occasions: dto.occasions ?? [],
+        photoUrls: dto.photoUrls ?? [],
       }),
     );
 

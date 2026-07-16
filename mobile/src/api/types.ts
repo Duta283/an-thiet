@@ -42,6 +42,7 @@ export interface ContentItem {
   sourceUrl: string | null;
   sourceAuthor: string | null;
   occasions: string[];
+  photoUrls: string[];
   createdAt: string;
   isVerified: boolean;
 }

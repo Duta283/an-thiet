@@ -25,6 +25,15 @@ export async function getAuthTokenSafe(): Promise<string | null> {
   }
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  if (AUTH_MODE === 'firebase') {
+    const token = authTokenGetter ? await authTokenGetter() : null;
+    if (!token) throw new Error('Chưa đăng nhập');
+    return { authorization: `Bearer ${token}` };
+  }
+  return { 'x-user-id': DEV_USER_ID }; // chỉ local — backend AUTH_MODE=dev
+}
+
 async function request<T>(
   path: string,
   init: RequestInit = {},
@@ -33,16 +42,8 @@ async function request<T>(
   const headers: Record<string, string> = {
     'content-type': 'application/json',
     ...(init.headers as Record<string, string>),
+    ...(auth ? await authHeaders() : {}),
   };
-  if (auth) {
-    if (AUTH_MODE === 'firebase') {
-      const token = authTokenGetter ? await authTokenGetter() : null;
-      if (!token) throw new Error('Chưa đăng nhập');
-      headers['authorization'] = `Bearer ${token}`;
-    } else {
-      headers['x-user-id'] = DEV_USER_ID; // chỉ local — backend AUTH_MODE=dev
-    }
-  }
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     const body = await res.text();
@@ -109,12 +110,33 @@ export const api = {
     mediaType?: 'video' | 'image' | 'text';
     /** EXIF từ ảnh chụp trong luồng check-in (Bước 8 test local) */
     exif?: { lat: number; lng: number; takenAt: string };
+    /** URL ảnh đã upload qua uploadPhoto() */
+    photoUrls?: string[];
   }) {
     return request<CheckinResult>(
       '/verifications/checkin',
       { method: 'POST', body: JSON.stringify(body) },
       true,
     );
+  },
+
+  /** Upload 1 ảnh check-in lên R2 qua backend → { url } */
+  async uploadPhoto(localUri: string): Promise<{ url: string }> {
+    const form = new FormData();
+    // React Native FormData nhận object {uri, name, type}
+    form.append('file', {
+      uri: localUri,
+      name: 'checkin.jpg',
+      type: 'image/jpeg',
+    } as unknown as Blob);
+    const res = await fetch(`${API_BASE}/media/upload`, {
+      method: 'POST',
+      // KHÔNG set content-type — fetch tự thêm boundary multipart
+      headers: await authHeaders(),
+      body: form,
+    });
+    if (!res.ok) throw new Error(`Upload ảnh lỗi ${res.status}`);
+    return res.json();
   },
 
   profile(userId: string) {

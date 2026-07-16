@@ -3,6 +3,8 @@ import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
+  Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -179,6 +181,26 @@ export function RestaurantDetailScreen({
             </View>
           </View>
 
+          {(() => {
+            const photos = contents.flatMap((c) => c.photoUrls ?? []);
+            return photos.length > 0 ? (
+              <View>
+                <Text style={styles.sectionHeader}>
+                  Ảnh từ cộng đồng ({photos.length})
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.galleryRow}
+                >
+                  {photos.map((u) => (
+                    <Image key={u} source={{ uri: u }} style={styles.galleryPhoto} />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null;
+          })()}
+
           {contents.length > 0 && (
             <Text style={styles.sectionHeader}>
               Nội dung về quán ({contents.length})
@@ -270,6 +292,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  galleryRow: { gap: 8, paddingHorizontal: 16 },
+  galleryPhoto: { borderRadius: 12, height: 130, width: 130 },
   emptyBox: { alignItems: 'center', gap: 8, paddingTop: 36 },
   empty: {
     color: colors.textMuted,

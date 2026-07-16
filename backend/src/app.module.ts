@@ -9,6 +9,7 @@ import { ContentModule } from './modules/content/content.module';
 import { VerificationModule } from './modules/verification/verification.module';
 import { TrustModule } from './modules/trust/trust.module';
 import { SocialModule } from './modules/social/social.module';
+import { MediaModule } from './modules/media/media.module';
 import { OembedModule } from './modules/oembed/oembed.module';
 import { SearchModule } from './modules/search/search.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -32,6 +33,7 @@ import { AdminModule } from './modules/admin/admin.module';
     VerificationModule,
     TrustModule,
     SocialModule,
+    MediaModule,
     OembedModule,
     SearchModule,
     AdminModule,

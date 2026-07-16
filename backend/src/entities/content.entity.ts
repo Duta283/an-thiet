@@ -42,6 +42,10 @@ export class Content {
   @Column({ type: 'text', array: true, default: '{}' })
   occasions: string[];
 
+  /** Ảnh check-in — URL public trên Cloudflare R2 */
+  @Column({ name: 'photo_urls', type: 'text', array: true, default: '{}' })
+  photoUrls: string[];
+
   @Column({ name: 'report_count', type: 'integer', default: 0 })
   reportCount: number;
 
