@@ -42,6 +42,7 @@ export class ContentService {
               c.source_platform AS "sourcePlatform", c.source_url AS "sourceUrl",
               c.source_author AS "sourceAuthor", c.occasions,
               c.photo_urls AS "photoUrls",
+              c.thumbnail_url AS "thumbnailUrl",
               c.created_at AS "createdAt",
               EXISTS (
                 SELECT 1 FROM verifications v

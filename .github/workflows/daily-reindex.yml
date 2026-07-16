@@ -1,0 +1,25 @@
+# Làm mới thumbnail TikTok hằng ngày (hotlink oEmbed có hạn dùng) + đồng bộ index.
+# Chạy 21:30 UTC = 4:30 sáng VN (sau backup DB lúc 3:00).
+# Cần secret: ADMIN_KEY (Settings > Secrets and variables > Actions).
+
+name: daily-reindex
+
+on:
+  schedule:
+    - cron: "30 21 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gọi reindex
+        env:
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+        run: |
+          test -n "$ADMIN_KEY" || { echo "Thiếu secret ADMIN_KEY"; exit 1; }
+          RES=$(curl -sS -X POST \
+            "https://an-thiet-production.up.railway.app/admin/search/reindex" \
+            -H "x-admin-key: $ADMIN_KEY")
+          echo "$RES"
+          echo "$RES" | grep -q '"indexed"' || { echo "Reindex FAIL"; exit 1; }

@@ -52,6 +52,12 @@ export function ContentItemCard({ item }: { item: ContentItem }) {
 
       {!!text && <Text style={styles.caption}>{text}</Text>}
 
+      {!!item.thumbnailUrl && (
+        <Pressable onPress={openSource}>
+          <Image source={{ uri: item.thumbnailUrl }} style={styles.sourceThumb} />
+        </Pressable>
+      )}
+
       {!!item.photoUrls?.length && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.photoRow}>
@@ -108,6 +114,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   caption: { color: colors.text, fontSize: 15, lineHeight: 21 },
+  sourceThumb: { borderRadius: 10, height: 170, width: '100%' },
   photoRow: { flexDirection: 'row', gap: 8 },
   photo: { borderRadius: 10, height: 110, width: 110 },
   credit: { color: colors.aggregated, fontSize: 13, fontWeight: '600' },

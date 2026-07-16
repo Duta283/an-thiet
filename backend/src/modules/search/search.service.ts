@@ -88,26 +88,37 @@ export class SearchService {
     );
     if (rows.length === 0) return { indexed: 0 };
 
-    // Doc 11 mục 1: thumbnail từ TikTok oEmbed cho card — chỉ lưu URL,
-    // lấy qua oEmbed hợp lệ (Spike 1), fail thì bỏ qua (card fallback emoji).
-    const tiktokUrls: { restaurant_id: string; source_url: string }[] =
-      await this.dataSource.query(
-        `SELECT DISTINCT ON (c.restaurant_id) c.restaurant_id, c.source_url
-         FROM contents c
-         WHERE c.source_platform = 'tiktok' AND c.is_hidden = false
-           AND c.source_url IS NOT NULL
-         ORDER BY c.restaurant_id, c.created_at DESC`,
-      );
-    const thumbs = new Map<string, string>();
-    for (const t of tiktokUrls) {
+    // Trình tự ảnh (doc 05 đính chính): ảnh nguồn TikTok lên app TRƯỚC.
+    // Fetch oEmbed cho TỪNG content tiktok (quán nhiều post = nhiều ảnh gallery);
+    // hotlink có hạn dùng → cron reindex hằng ngày tự làm mới URL.
+    // Chỉ lưu URL (con trỏ) — không tải media về, đúng phạm vi pháp lý Spike 1.
+    const tiktokContents: {
+      id: string;
+      restaurant_id: string;
+      source_url: string;
+    }[] = await this.dataSource.query(
+      `SELECT c.id, c.restaurant_id, c.source_url
+       FROM contents c
+       WHERE c.source_platform = 'tiktok' AND c.is_hidden = false
+         AND c.source_url IS NOT NULL
+       ORDER BY c.restaurant_id, c.created_at DESC`,
+    );
+    const thumbs = new Map<string, string>(); // ảnh đại diện quán = content mới nhất
+    for (const t of tiktokContents) {
       try {
         const o = await this.oembed.fetchForUrl('tiktok', t.source_url);
         if (o.thumbnailUrl) {
-          thumbs.set(t.restaurant_id, o.thumbnailUrl);
           await this.dataSource.query(
-            'UPDATE restaurants SET thumbnail_url = $1 WHERE id = $2',
-            [o.thumbnailUrl, t.restaurant_id],
+            'UPDATE contents SET thumbnail_url = $1 WHERE id = $2',
+            [o.thumbnailUrl, t.id],
           );
+          if (!thumbs.has(t.restaurant_id)) {
+            thumbs.set(t.restaurant_id, o.thumbnailUrl);
+            await this.dataSource.query(
+              'UPDATE restaurants SET thumbnail_url = $1 WHERE id = $2',
+              [o.thumbnailUrl, t.restaurant_id],
+            );
+          }
         }
       } catch {
         // URL seed giả / provider lỗi — card dùng fallback emoji

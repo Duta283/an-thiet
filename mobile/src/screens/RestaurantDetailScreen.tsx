@@ -89,6 +89,13 @@ export function RestaurantDetailScreen({
       renderItem={({ item }) => <ContentItemCard item={item} />}
       ListHeaderComponent={
         <View>
+          {!!restaurant.thumbnailUrl && (
+            <Image
+              source={{ uri: restaurant.thumbnailUrl }}
+              style={styles.hero}
+              resizeMode="cover"
+            />
+          )}
           <View style={styles.header}>
             <Text style={styles.name}>{restaurant.name}</Text>
             {!!restaurant.address && (
@@ -182,11 +189,15 @@ export function RestaurantDetailScreen({
           </View>
 
           {(() => {
-            const photos = contents.flatMap((c) => c.photoUrls ?? []);
+            // Trình tự doc 05: ảnh nguồn TikTok trước, ảnh check-in cộng đồng sau
+            const photos = [
+              ...contents.map((c) => c.thumbnailUrl).filter((u): u is string => !!u),
+              ...contents.flatMap((c) => c.photoUrls ?? []),
+            ];
             return photos.length > 0 ? (
               <View>
                 <Text style={styles.sectionHeader}>
-                  Ảnh từ cộng đồng ({photos.length})
+                  Ảnh về quán ({photos.length})
                 </Text>
                 <ScrollView
                   horizontal
@@ -292,6 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  hero: { height: 190, width: '100%' },
   galleryRow: { gap: 8, paddingHorizontal: 16 },
   galleryPhoto: { borderRadius: 12, height: 130, width: 130 },
   emptyBox: { alignItems: 'center', gap: 8, paddingTop: 36 },

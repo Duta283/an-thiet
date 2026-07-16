@@ -46,6 +46,10 @@ export class Content {
   @Column({ name: 'photo_urls', type: 'text', array: true, default: '{}' })
   photoUrls: string[];
 
+  /** Ảnh nguồn TikTok (hotlink từ oEmbed — reindex hằng ngày làm mới) */
+  @Column({ name: 'thumbnail_url', type: 'text', nullable: true })
+  thumbnailUrl: string | null;
+
   @Column({ name: 'report_count', type: 'integer', default: 0 })
   reportCount: number;
 

@@ -61,6 +61,7 @@ CREATE TABLE contents (
   source_author   text,   -- credit tác giả gốc
   occasions       text[] NOT NULL DEFAULT '{}', -- dịp: 'hen-ho', 'gia-dinh', 'an-khuya'...
   photo_urls      text[] NOT NULL DEFAULT '{}', -- ảnh check-in trên R2 (URL public)
+  thumbnail_url   text,                         -- ảnh nguồn TikTok (hotlink oEmbed, reindex làm mới)
   report_count    integer NOT NULL DEFAULT 0,
   is_hidden       boolean NOT NULL DEFAULT false,
   created_at      timestamptz NOT NULL DEFAULT now(),
